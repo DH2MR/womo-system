@@ -1,0 +1,79 @@
+sensor:
+  - platform: ad7606_dual_power
+    id: ad7606_power
+
+    cs1_pin: GPIO10
+    cs2_pin: GPIO09
+    convst_pin: GPIO8
+    reset_pin: GPIO7
+    busy1_pin: GPIO6
+    busy2_pin: GPIO5
+    range_pin: GPIO4
+    os2_pin: GPIO3
+    os1_pin: GPIO2
+    os0_pin: GPIO11
+
+
+    oversampling: 16x
+    update_interval: 1s
+    mains_hz: 50
+    voltage_scale: 11.5
+
+    voltage_rms:
+      name: "Netzspannung RMS"
+
+    frequency:
+      name: "Netzfrequenz"
+
+    active_power_total:
+      name: "Wirkleistung Gesamt"
+
+    current_rms_ch1:
+      name: "Strom RMS CH1"
+    current_rms_ch2:
+      name: "Strom RMS CH2"
+    current_rms_ch3:
+      name: "Strom RMS CH3"
+    current_rms_ch4:
+      name: "Strom RMS CH4"
+    current_rms_ch5:
+      name: "Strom RMS CH5"
+    current_rms_ch6:
+      name: "Strom RMS CH6"
+    current_rms_ch7:
+      name: "Strom RMS CH7"
+    current_rms_ch8:
+      name: "Strom RMS CH8"
+    current_rms_ch9:
+      name: "Strom RMS CH9"
+    current_rms_ch10:
+      name: "Strom RMS CH10"
+    current_rms_ch11:
+      name: "Strom RMS CH11"
+    current_rms_ch12:
+      name: "Strom RMS CH12"
+
+    active_power_ch1:
+      name: "Wirkleistung CH1"
+    active_power_ch2:
+      name: "Wirkleistung CH2"
+    active_power_ch3:
+      name: "Wirkleistung CH3"
+    active_power_ch4:
+      name: "Wirkleistung CH4"
+    active_power_ch5:
+      name: "Wirkleistung CH5"
+    active_power_ch6:
+      name: "Wirkleistung CH6"
+    active_power_ch7:
+      name: "Wirkleistung CH7"
+    active_power_ch8:
+      name: "Wirkleistung CH8"
+    active_power_ch9:
+      name: "Wirkleistung CH9"
+    active_power_ch10:
+      name: "Wirkleistung CH10"
+    active_power_ch11:
+      name: "Wirkleistung CH11"
+    active_power_ch12:
+      name: "Wirkleistung CH12"

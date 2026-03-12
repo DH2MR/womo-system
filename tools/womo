@@ -23,11 +23,14 @@ show_help() {
 
 normalize_node_name() {
   local input_name="$1"
-  if [[ "$input_name" == womo_* ]]; then
-    echo "$input_name"
-  else
-    echo "womo_${input_name}"
-  fi
+  local slug
+  slug="$(echo "$input_name" \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed 's/^womo[-_]//g' \
+    | sed 's/[_[:space:]]\+/-/g' \
+    | sed 's/--\+/-/g' \
+    | sed 's/^-//; s/-$//')"
+  echo "womo-${slug}"
 }
 
 find_node_doc() {
@@ -60,7 +63,7 @@ list_nodes() {
       node_file="$(basename "$file" .md)"
       printf "%-10s %s\n" "$class_name" "$node_file"
       found=1
-    done < <(find "$class_dir" -maxdepth 1 -type f -name 'womo_*.md' | sort)
+    done < <(find "$class_dir" -maxdepth 1 -type f -name 'womo-*.md' | sort)
   done
 
   if [ "$found" -eq 0 ]; then

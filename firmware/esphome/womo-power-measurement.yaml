@@ -2,14 +2,12 @@ substitutions:
   name: womo-power-measurement
   friendly_name: WoMo Power Measurement
 
+external_components:
+  - source:
+      type: local
+      path: /config/components
+
 packages:
-  device_base: !include base/device_base.yaml
-  node_health: !include base/node_health.yaml
-
-spi:
-  clk_pin: GPIO12
-  miso_pin: GPIO13
-
-# TODO
-# Hier kommt später wieder die AD7606 Dual Power
-# Konfiguration hinein.
+  base: !include base/device_base.yaml
+  diag: !include common/diag_basic.yaml
+  ad7606_power: !include sensors/ad7606_dual_power.yaml

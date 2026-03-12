@@ -27,3 +27,13 @@ secrets.yml
 *~
 *.swp
 *.tmp
+
+# ESPHome component caches and local backups
+firmware/esphome/components/**/__pycache__/
+firmware/esphome/components/**/*.pyc
+firmware/esphome/components/**/*.bak
+firmware/esphome/components/**/*.save
+firmware/esphome/components/**/*.working_readout
+firmware/esphome/components/**/*.before_*
+firmware/esphome/components/**/*.pre_*
+firmware/esphome/components/**/*.cppcd

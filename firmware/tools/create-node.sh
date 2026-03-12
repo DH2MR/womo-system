@@ -16,7 +16,7 @@ if [ "$#" -lt 2 ]; then
 fi
 
 NODE_CLASS="$1"
-RAW_NAME="$2"
+RAW_INPUT="$2"
 DATE="$(date +%F)"
 YEAR="$(date +%Y)"
 
@@ -34,10 +34,35 @@ DOC_DIR="$ROOT/docs/nodes/$NODE_CLASS"
 FW_DIR="$ROOT/firmware/esphome"
 LOG_DIR="$ROOT/logs/engineering/$YEAR"
 
-NODE_ID="womo_${RAW_NAME}"
+normalize_slug() {
+  echo "$1" \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed 's/^womo[-_]//g' \
+    | sed 's/[_[:space:]]\+/-/g' \
+    | sed 's/--\+/-/g' \
+    | sed 's/^-//; s/-$//'
+}
+
+make_friendly_name() {
+  echo "$1" \
+    | sed 's/^womo[-_]//g' \
+    | sed 's/[-_]/ /g' \
+    | awk '{
+        for (i=1; i<=NF; i++) {
+          $i=toupper(substr($i,1,1)) substr($i,2)
+        }
+        print
+      }'
+}
+
+NODE_SLUG="$(normalize_slug "$RAW_INPUT")"
+NODE_ID="womo-${NODE_SLUG}"
+FRIENDLY_SUFFIX="$(make_friendly_name "$RAW_INPUT")"
+FRIENDLY_NAME="WoMo ${FRIENDLY_SUFFIX}"
+
 DOC_FILE="$DOC_DIR/${NODE_ID}.md"
 FW_FILE="$FW_DIR/${NODE_ID}.yaml"
-LOG_FILE="$LOG_DIR/${DATE}_node_${RAW_NAME}.md"
+LOG_FILE="$LOG_DIR/${DATE}_node_${NODE_SLUG}.md"
 
 if [ -e "$DOC_FILE" ] || [ -e "$FW_FILE" ] || [ -e "$LOG_FILE" ]; then
   echo "Error: one or more target files already exist."
@@ -56,6 +81,7 @@ build_firmware_block() {
 # --- sensor-specific configuration ---
 
 i2c:
+  id: bus_i2c
   sda: GPIO8
   scl: GPIO9
   scan: true
@@ -65,9 +91,12 @@ i2c:
 #     pin: GPIO2
 
 # sensor:
-#   - platform: dallas_temp
-#     address: 0x0000000000000000
-#     name: "${friendly_name} Temperature"
+#   - platform: sht3xd
+#     i2c_id: bus_i2c
+#     temperature:
+#       name: "${friendly_name} Temperature"
+#     humidity:
+#       name: "${friendly_name} Humidity"
 YAML
       ;;
     power)
@@ -92,17 +121,11 @@ YAML
 #   - platform: template
 #     name: "${friendly_name} Power"
 #     unit_of_measurement: "W"
-
-# calibration:
-#   voltage_scale: 1.0
-#   current_scale: 1.0
 YAML
       ;;
     control)
       cat << 'YAML'
 # --- control-specific configuration ---
-
-# Example command/state structure.
 
 # output:
 #   - platform: gpio
@@ -113,20 +136,11 @@ YAML
 #   - platform: output
 #     name: "${friendly_name} Relay"
 #     output: relay_output
-
-# binary_sensor:
-#   - platform: gpio
-#     pin:
-#       number: GPIO3
-#       mode: INPUT_PULLUP
-#     name: "${friendly_name} Feedback"
 YAML
       ;;
     system)
       cat << 'YAML'
 # --- system-specific configuration ---
-
-# Add diagnostic, watchdog, heartbeat or infrastructure sensors here.
 
 # sensor:
 #   - platform: internal_temperature
@@ -136,8 +150,6 @@ YAML
     gateway)
       cat << 'YAML'
 # --- gateway-specific configuration ---
-
-# Add protocol bridge configuration here, e.g. UART, RS485, Modbus, CAN.
 
 # uart:
 #   tx_pin: GPIO17
@@ -150,8 +162,6 @@ YAML
 # --- lab-specific configuration ---
 
 # Experimental node.
-# Use for temporary hardware tests, bus scans or validation setups.
-
 # logger:
 #   level: DEBUG
 YAML
@@ -167,11 +177,6 @@ build_doc_block() {
 - Typisch publish-lastig
 - geringe bis mittlere Rechenlast
 - geeignet für Umwelt- und Zustandsdaten
-
-## Typische Topics
-- womo/climate/<location>/<metric>
-- womo/water/<tank>/<metric>
-- womo/system/<node>/status
 DOC
       ;;
     power)
@@ -180,11 +185,6 @@ DOC
 - höhere technische Kritikalität
 - Kalibrierung dokumentieren
 - Messpfad und Berechnungen sauber beschreiben
-
-## Typische Topics
-- womo/power/<device>/<channel>/<metric>
-- womo/power/total/<metric>
-- womo/system/<node>/status
 DOC
       ;;
     control)
@@ -193,11 +193,6 @@ DOC
 - Safe State definieren
 - Bootverhalten dokumentieren
 - Soll-/Ist-Zustände trennen
-
-## Typische Topics
-- womo/control/<device>/cmd
-- womo/control/<device>/state
-- womo/control/<device>/fault
 DOC
       ;;
     system)
@@ -205,11 +200,6 @@ DOC
 ## Klassenhinweise
 - Fokus auf Monitoring und Health
 - Diagnose- und Metadaten bereitstellen
-
-## Typische Topics
-- womo/system/<node>/status
-- womo/system/<node>/uptime
-- womo/system/<node>/wifi_rssi
 DOC
       ;;
     gateway)
@@ -217,10 +207,6 @@ DOC
 ## Klassenhinweise
 - Protokollmapping dokumentieren
 - Timeouts und Fehlerpfade festhalten
-
-## Typische Topics
-- womo/gateway/<bridge>/<metric>
-- womo/system/<node>/status
 DOC
       ;;
     lab)
@@ -228,10 +214,6 @@ DOC
 ## Klassenhinweise
 - nicht produktiv
 - Erkenntnisse später in produktive Node-Klasse überführen
-
-## Typische Topics
-- womo/debug/<node>/<message>
-- womo/system/<node>/status
 DOC
       ;;
   esac
@@ -240,7 +222,7 @@ DOC
 cat << YAML > "$FW_FILE"
 substitutions:
   name: ${NODE_ID}
-  friendly_name: WoMo ${RAW_NAME}
+  friendly_name: ${FRIENDLY_NAME}
 
 packages:
   device_base: !include base/device_base.yaml
@@ -297,7 +279,7 @@ $(build_doc_block)
 
 ## Firmware
 - ESPHome Node Name: ${NODE_ID}
-- Friendly Name: WoMo ${RAW_NAME}
+- Friendly Name: ${FRIENDLY_NAME}
 - YAML-Datei: firmware/esphome/${NODE_ID}.yaml
 - Base Packages:
   - firmware/esphome/base/device_base.yaml
@@ -348,7 +330,7 @@ DOC
 
 cat << LOG > "$LOG_FILE"
 ---
-id: englog.node_${RAW_NAME}
+id: englog.node_${NODE_SLUG}
 type: engineering-log
 date: ${DATE}
 owner: engineering
@@ -376,7 +358,7 @@ Neuer ${NODE_CLASS}-Node wird im Repository angelegt.
 ## Erzeugte Dateien
 - firmware/esphome/${NODE_ID}.yaml
 - docs/nodes/${NODE_CLASS}/${NODE_ID}.md
-- logs/engineering/${YEAR}/${DATE}_node_${RAW_NAME}.md
+- logs/engineering/${YEAR}/${DATE}_node_${NODE_SLUG}.md
 
 ## Nächste Schritte
 - Hardware spezifizieren
