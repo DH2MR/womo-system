@@ -1,5 +1,12 @@
 # Node Health Topics Standard
 
+Dieser Standard ist Teil der MQTT Topic Structure Definition.
+
+Siehe:
+docs/standards/mqtt-topic-structure.md
+
+---
+
 Jeder WoMo-Node publiziert standardisierte System- und Health-Daten über MQTT.
 
 ## Pflicht-Topics
@@ -22,8 +29,9 @@ womo/system/<node>/heap_free
 
 ### status
 Werte:
-- online
-- offline
+
+online  
+offline
 
 ### uptime
 Laufzeit des Nodes seit letztem Boot.
@@ -42,7 +50,8 @@ Freier Heap-Speicher.
 
 ## Empfehlungen
 
-- status retained
-- system state QoS 1
-- Messwerte QoS 0
-- last_seen optional ergänzen
+status retained  
+system state QoS 1  
+Messwerte QoS 0  
+
+last_seen optional ergänzen
