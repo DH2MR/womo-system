@@ -9,5 +9,6 @@ external_components:
 
 packages:
   base: !include base/device_base.yaml
+  node_health: !include base/node_health.yaml
   diag: !include common/diag_basic.yaml
   ad7606_power: !include sensors/ad7606_dual_power.yaml
