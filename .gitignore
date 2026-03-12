@@ -11,12 +11,19 @@ __pycache__/
 .pioenvs/
 .piolibdeps/
 
-# secrets
+# Secrets
 secrets.yaml
+secrets.yml
+*.secret.yaml
 
-# logs
+# Logs
 *.log
 
-# editor
+# Editors
 .vscode/
 .idea/
+
+# Temporary files
+*~
+*.swp
+*.tmp
