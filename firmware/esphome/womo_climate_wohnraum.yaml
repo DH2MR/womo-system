@@ -1,0 +1,23 @@
+substitutions:
+  name: womo_climate_wohnraum
+  friendly_name: WoMo climate_wohnraum
+
+packages:
+  device_base: !include base/device_base.yaml
+  node_health: !include base/node_health.yaml
+
+# --- sensor-specific configuration ---
+
+i2c:
+  sda: GPIO8
+  scl: GPIO9
+  scan: true
+
+# onewire:
+#   - platform: gpio
+#     pin: GPIO2
+
+# sensor:
+#   - platform: dallas_temp
+#     address: 0x0000000000000000
+#     name: "${friendly_name} Temperature"
