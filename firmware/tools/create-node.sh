@@ -30,7 +30,6 @@ case "$NODE_CLASS" in
 esac
 
 ROOT="$(git rev-parse --show-toplevel)"
-
 DOC_DIR="$ROOT/docs/nodes/$NODE_CLASS"
 FW_DIR="$ROOT/firmware/esphome"
 LOG_DIR="$ROOT/logs/engineering/$YEAR"
@@ -50,6 +49,194 @@ fi
 
 mkdir -p "$DOC_DIR" "$FW_DIR" "$LOG_DIR"
 
+build_firmware_block() {
+  case "$NODE_CLASS" in
+    sensor)
+      cat << 'YAML'
+# --- sensor-specific configuration ---
+
+i2c:
+  sda: GPIO8
+  scl: GPIO9
+  scan: true
+
+# onewire:
+#   - platform: gpio
+#     pin: GPIO2
+
+# sensor:
+#   - platform: dallas_temp
+#     address: 0x0000000000000000
+#     name: "${friendly_name} Temperature"
+YAML
+      ;;
+    power)
+      cat << 'YAML'
+# --- power-specific configuration ---
+
+# Example placeholder for power measurement nodes.
+# Replace with custom component or ADC configuration.
+
+# spi:
+#   clk_pin: GPIO12
+#   mosi_pin: GPIO11
+#   miso_pin: GPIO13
+
+# sensor:
+#   - platform: template
+#     name: "${friendly_name} Voltage"
+#     unit_of_measurement: "V"
+#   - platform: template
+#     name: "${friendly_name} Current"
+#     unit_of_measurement: "A"
+#   - platform: template
+#     name: "${friendly_name} Power"
+#     unit_of_measurement: "W"
+
+# calibration:
+#   voltage_scale: 1.0
+#   current_scale: 1.0
+YAML
+      ;;
+    control)
+      cat << 'YAML'
+# --- control-specific configuration ---
+
+# Example command/state structure.
+
+# output:
+#   - platform: gpio
+#     pin: GPIO2
+#     id: relay_output
+
+# switch:
+#   - platform: output
+#     name: "${friendly_name} Relay"
+#     output: relay_output
+
+# binary_sensor:
+#   - platform: gpio
+#     pin:
+#       number: GPIO3
+#       mode: INPUT_PULLUP
+#     name: "${friendly_name} Feedback"
+YAML
+      ;;
+    system)
+      cat << 'YAML'
+# --- system-specific configuration ---
+
+# Add diagnostic, watchdog, heartbeat or infrastructure sensors here.
+
+# sensor:
+#   - platform: internal_temperature
+#     name: "${friendly_name} MCU Temperature"
+YAML
+      ;;
+    gateway)
+      cat << 'YAML'
+# --- gateway-specific configuration ---
+
+# Add protocol bridge configuration here, e.g. UART, RS485, Modbus, CAN.
+
+# uart:
+#   tx_pin: GPIO17
+#   rx_pin: GPIO18
+#   baud_rate: 9600
+YAML
+      ;;
+    lab)
+      cat << 'YAML'
+# --- lab-specific configuration ---
+
+# Experimental node.
+# Use for temporary hardware tests, bus scans or validation setups.
+
+# logger:
+#   level: DEBUG
+YAML
+      ;;
+  esac
+}
+
+build_doc_block() {
+  case "$NODE_CLASS" in
+    sensor)
+      cat << 'DOC'
+## Klassenhinweise
+- Typisch publish-lastig
+- geringe bis mittlere Rechenlast
+- geeignet für Umwelt- und Zustandsdaten
+
+## Typische Topics
+- womo/climate/<location>/<metric>
+- womo/water/<tank>/<metric>
+- womo/system/<node>/status
+DOC
+      ;;
+    power)
+      cat << 'DOC'
+## Klassenhinweise
+- höhere technische Kritikalität
+- Kalibrierung dokumentieren
+- Messpfad und Berechnungen sauber beschreiben
+
+## Typische Topics
+- womo/power/<device>/<channel>/<metric>
+- womo/power/total/<metric>
+- womo/system/<node>/status
+DOC
+      ;;
+    control)
+      cat << 'DOC'
+## Klassenhinweise
+- Safe State definieren
+- Bootverhalten dokumentieren
+- Soll-/Ist-Zustände trennen
+
+## Typische Topics
+- womo/control/<device>/cmd
+- womo/control/<device>/state
+- womo/control/<device>/fault
+DOC
+      ;;
+    system)
+      cat << 'DOC'
+## Klassenhinweise
+- Fokus auf Monitoring und Health
+- Diagnose- und Metadaten bereitstellen
+
+## Typische Topics
+- womo/system/<node>/status
+- womo/system/<node>/uptime
+- womo/system/<node>/wifi_rssi
+DOC
+      ;;
+    gateway)
+      cat << 'DOC'
+## Klassenhinweise
+- Protokollmapping dokumentieren
+- Timeouts und Fehlerpfade festhalten
+
+## Typische Topics
+- womo/gateway/<bridge>/<metric>
+- womo/system/<node>/status
+DOC
+      ;;
+    lab)
+      cat << 'DOC'
+## Klassenhinweise
+- nicht produktiv
+- Erkenntnisse später in produktive Node-Klasse überführen
+
+## Typische Topics
+- womo/debug/<node>/<message>
+- womo/system/<node>/status
+DOC
+      ;;
+  esac
+}
+
 cat << YAML > "$FW_FILE"
 substitutions:
   name: ${NODE_ID}
@@ -59,7 +246,7 @@ packages:
   device_base: !include base/device_base.yaml
   node_health: !include base/node_health.yaml
 
-# --- ${NODE_CLASS}-specific configuration goes here ---
+$(build_firmware_block)
 YAML
 
 cat << DOC > "$DOC_FILE"
@@ -72,6 +259,7 @@ owner: engineering
 last_updated: ${DATE}
 tags:
   - esp32-s3-zero
+  - ${NODE_CLASS}
 relations:
   uses: []
   topics: []
@@ -84,6 +272,8 @@ Beschreibung der Aufgabe dieses Nodes.
 
 ## Node Class
 ${NODE_CLASS}
+
+$(build_doc_block)
 
 ## Status
 - Status: draft
@@ -178,7 +368,8 @@ Initiale Anlage eines neuen Node-Skeletts.
 Neuer ${NODE_CLASS}-Node wird im Repository angelegt.
 
 ## Änderungen
-- YAML-Skelett erzeugt
+- YAML-Skelett mit Base-Packages erzeugt
+- klassenspezifische Vorlage erzeugt
 - Node-Dokumentation erzeugt
 - Engineering-Log erzeugt
 
