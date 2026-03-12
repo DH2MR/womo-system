@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 if [ "$#" -lt 2 ]; then
   echo "Usage: create-node.sh <class> <name>"
@@ -15,61 +15,56 @@ if [ "$#" -lt 2 ]; then
   exit 1
 fi
 
-NODE_CLASS=$1
-NODE_NAME=$2
-DATE=$(date +%F)
+NODE_CLASS="$1"
+RAW_NAME="$2"
+DATE="$(date +%F)"
+YEAR="$(date +%Y)"
 
-ROOT=$(git rev-parse --show-toplevel)
+case "$NODE_CLASS" in
+  sensor|power|control|system|gateway|lab)
+    ;;
+  *)
+    echo "Error: invalid class '$NODE_CLASS'"
+    exit 1
+    ;;
+esac
+
+ROOT="$(git rev-parse --show-toplevel)"
 
 DOC_DIR="$ROOT/docs/nodes/$NODE_CLASS"
 FW_DIR="$ROOT/firmware/esphome"
-LOG_DIR="$ROOT/logs/engineering/$(date +%Y)"
+LOG_DIR="$ROOT/logs/engineering/$YEAR"
 
-DOC_FILE="$DOC_DIR/womo_${NODE_NAME}.md"
-FW_FILE="$FW_DIR/womo_${NODE_NAME}.yaml"
-LOG_FILE="$LOG_DIR/${DATE}_node_${NODE_NAME}.md"
+NODE_ID="womo_${RAW_NAME}"
+DOC_FILE="$DOC_DIR/${NODE_ID}.md"
+FW_FILE="$FW_DIR/${NODE_ID}.yaml"
+LOG_FILE="$LOG_DIR/${DATE}_node_${RAW_NAME}.md"
 
-echo "Creating node: womo_${NODE_NAME}"
-echo ""
+if [ -e "$DOC_FILE" ] || [ -e "$FW_FILE" ] || [ -e "$LOG_FILE" ]; then
+  echo "Error: one or more target files already exist."
+  echo "  $FW_FILE"
+  echo "  $DOC_FILE"
+  echo "  $LOG_FILE"
+  exit 1
+fi
 
-mkdir -p "$DOC_DIR"
-mkdir -p "$LOG_DIR"
-
-# ---- Firmware YAML ----
+mkdir -p "$DOC_DIR" "$FW_DIR" "$LOG_DIR"
 
 cat << YAML > "$FW_FILE"
-esphome:
-  name: womo_${NODE_NAME}
-  friendly_name: WoMo ${NODE_NAME}
+substitutions:
+  name: ${NODE_ID}
+  friendly_name: WoMo ${RAW_NAME}
 
-esp32:
-  board: esp32-s3-devkitc-1
-  framework:
-    type: arduino
+packages:
+  device_base: !include base/device_base.yaml
+  node_health: !include base/node_health.yaml
 
-logger:
-
-wifi:
-  ssid: !secret wifi_ssid_2g
-  password: !secret wifi_password_2g
-  power_save_mode: none
-
-mqtt:
-  broker: 10.10.64.10
-  username: esphome
-  password: womo_mqtt_2026
-
-ota:
-  - platform: esphome
-
-# --- sensors / components go here ---
+# --- ${NODE_CLASS}-specific configuration goes here ---
 YAML
-
-# ---- Node documentation ----
 
 cat << DOC > "$DOC_FILE"
 ---
-id: node.womo_${NODE_NAME}
+id: node.${NODE_ID}
 type: node
 class: ${NODE_CLASS}
 status: draft
@@ -79,85 +74,127 @@ tags:
   - esp32-s3-zero
 relations:
   uses: []
+  topics: []
 ---
 
-# Node: womo_${NODE_NAME}
+# Node: ${NODE_ID}
 
 ## Zweck
-
 Beschreibung der Aufgabe dieses Nodes.
 
 ## Node Class
-
 ${NODE_CLASS}
+
+## Status
+- Status: draft
+- Deployment State:
+- Kritikalität:
 
 ## Hardware
 
-Controller:
-ESP32-S3 Zero
+### Controller
+- Board: ESP32-S3 Zero
+- MCU: ESP32-S3
+- Versorgung:
 
-Sensoren / Interfaces:
-TBD
+### Sensoren / Interfaces
+- TBD
+
+## Pinbelegung
+
+| Signal | GPIO | Richtung | Beschreibung |
+|---|---:|---|---|
 
 ## Firmware
+- ESPHome Node Name: ${NODE_ID}
+- Friendly Name: WoMo ${RAW_NAME}
+- YAML-Datei: firmware/esphome/${NODE_ID}.yaml
+- Base Packages:
+  - firmware/esphome/base/device_base.yaml
+  - firmware/esphome/base/node_health.yaml
 
-ESPHome Node:
-womo_${NODE_NAME}
+## Netzwerk
+- WLAN: womo_2G
+- DHCP Reservation: vorgesehen
+- MQTT Broker: 10.10.64.10:1883
 
-YAML:
-firmware/esphome/womo_${NODE_NAME}.yaml
+## MQTT
 
-## MQTT Topics
+### Publish Topics
+| Topic | Payload | Beschreibung |
+|---|---|---|
 
-Publish:
+### Subscribe Topics
+| Topic | Payload | Beschreibung |
+|---|---|---|
 
-womo/<domain>/<entity>/<metric>
+## Messgrößen / Funktionen
+- TBD
 
-Subscribe:
+## Kalibrierung
+- TBD
 
-optional
+## Betriebsverhalten
+- Boot-Verhalten:
+- Update-Verhalten:
+- Fehlerverhalten:
 
-## Status
+## Bekannte Risiken / Grenzen
+- TBD
 
-- [ ] Hardware definiert
-- [ ] Firmware erstellt
-- [ ] MQTT Topics definiert
-- [ ] Node getestet
+## Teststatus
+- [ ] Kompiliert
+- [ ] OTA erfolgreich
+- [ ] MQTT verbunden
+- [ ] Sensordaten plausibel
+- [ ] Langzeittest bestanden
+
+## Verknüpfte Dokumente
+- ADRs:
+- Debugging:
+- Runbooks:
+- Schaltplan / PCB:
 DOC
 
-# ---- Engineering log ----
-
 cat << LOG > "$LOG_FILE"
-# Engineering Log
+---
+id: englog.node_${RAW_NAME}
+type: engineering-log
+date: ${DATE}
+owner: engineering
+topic: node-creation
+status: active
+tags:
+  - ${NODE_CLASS}
+  - ${NODE_ID}
+---
 
-Date: ${DATE}
+# Engineering Log: Create ${NODE_ID}
 
-Topic:
-Node creation womo_${NODE_NAME}
+## Ziel des Arbeitsschritts
+Initiale Anlage eines neuen Node-Skeletts.
 
-## Node Class
+## Ausgangslage
+Neuer ${NODE_CLASS}-Node wird im Repository angelegt.
 
-${NODE_CLASS}
+## Änderungen
+- YAML-Skelett erzeugt
+- Node-Dokumentation erzeugt
+- Engineering-Log erzeugt
 
-## Goal
+## Erzeugte Dateien
+- firmware/esphome/${NODE_ID}.yaml
+- docs/nodes/${NODE_CLASS}/${NODE_ID}.md
+- logs/engineering/${YEAR}/${DATE}_node_${RAW_NAME}.md
 
-Initial creation of node skeleton.
-
-## Created files
-
-- ${FW_FILE}
-- ${DOC_FILE}
-
-## Next steps
-
-- hardware design
-- sensor integration
-- mqtt topics
+## Nächste Schritte
+- Hardware spezifizieren
+- MQTT Topics definieren
+- Firmware konfigurieren
+- Tests durchführen
 LOG
 
 echo "Created:"
 echo "  $FW_FILE"
 echo "  $DOC_FILE"
 echo "  $LOG_FILE"
-echo ""
-echo "Node skeleton ready."
