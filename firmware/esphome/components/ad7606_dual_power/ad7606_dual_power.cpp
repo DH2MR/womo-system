@@ -1,14 +1,31 @@
 #include "ad7606_dual_power.h"
 #include "esphome/core/log.h"
+#include "esphome/core/application.h"
 #include "esphome/components/wifi/wifi_component.h"
+#include "esphome/components/mqtt/mqtt_client.h"
 #include <cmath>
 #include <cstring>
+#include <cstdio>
+#include <string>
 
 namespace esphome {
 namespace ad7606_dual_power {
 
 static const char *const TAG = "ad7606_hwspi";
 static const int SAMPLE_COUNT = 32;
+
+static void mqtt_publish_float_(const std::string &topic, float value, int decimals = 2) {
+  if (mqtt::global_mqtt_client == nullptr)
+    return;
+
+  char payload[32];
+  std::snprintf(payload, sizeof(payload), "%.*f", decimals, value);
+  mqtt::global_mqtt_client->publish(topic, payload);
+}
+
+static std::string power_topic_(const std::string &suffix) {
+  return std::string("womo/power/") + suffix;
+}
 
 bool AD7606DualPower::start_conversion_and_wait_() {
   if (convst_pin_ == nullptr || busy1_pin_ == nullptr || busy2_pin_ == nullptr)
@@ -206,9 +223,13 @@ void AD7606DualPower::update() {
 
   if (voltage_rms_sensor_ != nullptr)
     voltage_rms_sensor_->publish_state(voltage);
+  mqtt_publish_float_(power_topic_("ac/voltage"), voltage, 2);
 
   if (frequency_sensor_ != nullptr)
     frequency_sensor_->publish_state(mains_hz_);
+  mqtt_publish_float_(power_topic_("ac/frequency"), mains_hz_, 1);
+
+  float total_real_power = 0.0f;
 
   for (int ch = 0; ch < 12; ch++) {
     float i_sum = 0.0f;
@@ -225,16 +246,28 @@ void AD7606DualPower::update() {
 
     const float irms_counts = std::sqrt(i_sq_sum / SAMPLE_COUNT);
     const float cur = irms_counts / 1000.0f;
+    const float real_power = 0.0f;
 
     if (current_rms_[ch] != nullptr)
       current_rms_[ch]->publish_state(cur);
 
     if (active_power_[ch] != nullptr)
-      active_power_[ch]->publish_state(0.0f);
+      active_power_[ch]->publish_state(real_power);
+
+    char current_topic[64];
+    std::snprintf(current_topic, sizeof(current_topic), "channel/ch%d/current", ch + 1);
+    mqtt_publish_float_(power_topic_(current_topic), cur, 2);
+
+    char power_topic[64];
+    std::snprintf(power_topic, sizeof(power_topic), "channel/ch%d/real_power", ch + 1);
+    mqtt_publish_float_(power_topic_(power_topic), real_power, 1);
+
+    total_real_power += real_power;
   }
 
   if (active_power_total_sensor_ != nullptr)
-    active_power_total_sensor_->publish_state(0.0f);
+    active_power_total_sensor_->publish_state(total_real_power);
+  mqtt_publish_float_(power_topic_("total/real_power"), total_real_power, 1);
 
   ESP_LOGI(TAG, "RMS publish complete, Voff=%.2f cnt, Vrms=%.3f cnt -> %.2f V",
            v_offset, vrms_counts, voltage);
