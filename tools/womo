@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT=$(git rev-parse --show-toplevel)
+
+show_help() {
+  echo "WoMo CLI"
+  echo ""
+  echo "Commands:"
+  echo "  womo node create <class> <name>"
+  echo "  womo mqtt inspect [mode] [topic]"
+  echo "  womo mqtt validate [topic]"
+  echo "  womo docs"
+  echo ""
+}
+
+CMD="${1:-}"
+
+case "$CMD" in
+
+node)
+  shift
+  SUB="${1:-}"
+  shift || true
+
+  case "$SUB" in
+    create)
+      "$ROOT/firmware/tools/create-node.sh" "$@"
+      ;;
+    *)
+      show_help
+      ;;
+  esac
+  ;;
+
+mqtt)
+  shift
+  SUB="${1:-}"
+  shift || true
+
+  case "$SUB" in
+    inspect)
+      "$ROOT/infrastructure/mqtt/mqtt-inspect.sh" "$@"
+      ;;
+    validate)
+      "$ROOT/infrastructure/mqtt/mqtt-validate-topics.sh" "$@"
+      ;;
+    *)
+      show_help
+      ;;
+  esac
+  ;;
+
+docs)
+  ls "$ROOT/docs"
+  ;;
+
+*)
+  show_help
+  ;;
+
+esac
