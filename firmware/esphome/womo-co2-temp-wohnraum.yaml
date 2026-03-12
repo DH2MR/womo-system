@@ -1,0 +1,28 @@
+substitutions:
+  name: womo-co2-temp-wohnraum
+  friendly_name: WoMo CO2 Temp Wohnraum
+
+packages:
+  device_base: !include base/device_base.yaml
+  node_health: !include base/node_health.yaml
+
+i2c:
+  id: bus_i2c
+  sda: GPIO8
+  scl: GPIO9
+  scan: true
+
+one_wire:
+  - platform: gpio
+    pin: GPIO2
+
+sensor:
+  - platform: dallas_temp
+    name: "${friendly_name} DS18B20 Temperature"
+
+  - platform: ee895
+    i2c_id: bus_i2c
+    temperature:
+      name: "${friendly_name} EE895 Temperature"
+    co2:
+      name: "${friendly_name} CO2"
