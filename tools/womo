@@ -2,16 +2,94 @@
 set -euo pipefail
 
 ROOT=$(git rev-parse --show-toplevel)
+DOCS_ROOT="$ROOT/docs/nodes"
+FW_ROOT="$ROOT/firmware/esphome"
 
 show_help() {
   echo "WoMo CLI"
   echo ""
   echo "Commands:"
   echo "  womo node create <class> <name>"
+  echo "  womo node list"
+  echo "  womo node show <name>"
   echo "  womo mqtt inspect [mode] [topic]"
   echo "  womo mqtt validate [topic]"
   echo "  womo docs"
   echo ""
+}
+
+find_node_doc() {
+  local node_name="$1"
+  find "$DOCS_ROOT" -type f -name "${node_name}.md" | head -n 1
+}
+
+list_nodes() {
+  local found=0
+
+  for class_dir in "$DOCS_ROOT"/*; do
+    [ -d "$class_dir" ] || continue
+    class_name="$(basename "$class_dir")"
+
+    while IFS= read -r file; do
+      [ -n "$file" ] || continue
+      node_file="$(basename "$file" .md)"
+      printf "%-10s %s\n" "$class_name" "$node_file"
+      found=1
+    done < <(find "$class_dir" -maxdepth 1 -type f -name 'womo_*.md' | sort)
+  done
+
+  if [ "$found" -eq 0 ]; then
+    echo "No nodes found."
+  fi
+}
+
+show_node() {
+  local input_name="$1"
+  local node_name="$input_name"
+
+  if [[ "$node_name" != womo_* ]]; then
+    node_name="womo_${node_name}"
+  fi
+
+  local doc_file
+  local fw_file
+
+  doc_file="$(find_node_doc "$node_name" || true)"
+  fw_file="$FW_ROOT/${node_name}.yaml"
+
+  if [ -z "$doc_file" ] && [ ! -f "$fw_file" ]; then
+    echo "Node not found: $input_name"
+    exit 1
+  fi
+
+  echo "Node: $node_name"
+  echo ""
+
+  if [ -n "$doc_file" ]; then
+    echo "Documentation: ${doc_file#$ROOT/}"
+  else
+    echo "Documentation: not found"
+  fi
+
+  if [ -f "$fw_file" ]; then
+    echo "Firmware:      ${fw_file#$ROOT/}"
+  else
+    echo "Firmware:      not found"
+  fi
+
+  echo ""
+
+  if [ -n "$doc_file" ]; then
+    echo "===== DOCUMENTATION ====="
+    sed -n '1,220p' "$doc_file"
+    echo ""
+  fi
+
+  if [ -f "$fw_file" ]; then
+    echo "===== FIRMWARE YAML ====="
+    sed -n '1,220p' "$fw_file"
+    echo ""
+  fi
 }
 
 CMD="${1:-}"
@@ -19,13 +97,23 @@ CMD="${1:-}"
 case "$CMD" in
 
 node)
-  shift
+  shift || true
   SUB="${1:-}"
   shift || true
 
   case "$SUB" in
     create)
       "$ROOT/firmware/tools/create-node.sh" "$@"
+      ;;
+    list)
+      list_nodes
+      ;;
+    show)
+      if [ $# -lt 1 ]; then
+        echo "Usage: womo node show <name>"
+        exit 1
+      fi
+      show_node "$1"
       ;;
     *)
       show_help
@@ -34,7 +122,7 @@ node)
   ;;
 
 mqtt)
-  shift
+  shift || true
   SUB="${1:-}"
   shift || true
 
