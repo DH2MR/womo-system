@@ -1,6 +1,6 @@
 substitutions:
-  name: womo_climate_wohnraum
-  friendly_name: WoMo climate_wohnraum
+  name: womo-climate-wohnraum
+  friendly_name: WoMo Climate Wohnraum
 
 packages:
   device_base: !include base/device_base.yaml

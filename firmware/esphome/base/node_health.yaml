@@ -1,0 +1,39 @@
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "${friendly_name} IP"
+      id: node_ip
+
+  - platform: template
+    name: "${friendly_name} Status"
+    id: node_status
+    update_interval: 60s
+    lambda: |-
+      return {"online"};
+
+  - platform: template
+    name: "${friendly_name} Restart Reason"
+    id: node_restart_reason
+    update_interval: 300s
+    lambda: |-
+      return {"unknown"};
+
+sensor:
+  - platform: uptime
+    name: "${friendly_name} Uptime"
+    id: node_uptime
+    update_interval: 60s
+
+  - platform: wifi_signal
+    name: "${friendly_name} WiFi RSSI"
+    id: node_wifi_rssi
+    update_interval: 60s
+
+  - platform: template
+    name: "${friendly_name} Heap Free"
+    id: node_heap_free
+    unit_of_measurement: "B"
+    accuracy_decimals: 0
+    update_interval: 60s
+    lambda: |-
+      return (float) ESP.getFreeHeap();

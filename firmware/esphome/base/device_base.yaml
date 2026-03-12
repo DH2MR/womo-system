@@ -1,0 +1,24 @@
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: arduino
+
+logger:
+
+wifi:
+  ssid: !secret wifi_ssid_2g
+  password: !secret wifi_password_2g
+  power_save_mode: none
+
+mqtt:
+  broker: 10.10.64.10
+  port: 1883
+  username: esphome
+  password: womo_mqtt_2026
+
+ota:
+  - platform: esphome
