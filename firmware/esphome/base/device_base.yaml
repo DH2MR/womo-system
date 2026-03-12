@@ -19,6 +19,19 @@ mqtt:
   port: 1883
   username: esphome
   password: womo_mqtt_2026
+  birth_message:
+    topic: womo/system/${name}/status
+    payload: online
+    qos: 1
+    retain: true
+  will_message:
+    topic: womo/system/${name}/status
+    payload: offline
+    qos: 1
+    retain: true
+  log_topic:
+    topic: womo/debug/${name}
 
 ota:
   - platform: esphome
+    password: !secret ota_password
