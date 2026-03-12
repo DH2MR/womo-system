@@ -1,26 +1,72 @@
+esphome:
+  on_boot:
+    then:
+      - delay: 10s
+      - mqtt.publish:
+          topic: womo/system/${name}/ip
+          payload: !lambda 'return id(node_ip).state;'
+          qos: 1
+          retain: true
+      - mqtt.publish:
+          topic: womo/system/${name}/restart_reason
+          payload: !lambda 'return id(node_restart_reason).state;'
+          qos: 1
+          retain: true
+      - mqtt.publish:
+          topic: womo/system/${name}/uptime
+          payload: !lambda 'return to_string((uint32_t) id(node_uptime).state);'
+          qos: 1
+          retain: true
+      - mqtt.publish:
+          topic: womo/system/${name}/wifi_rssi
+          payload: !lambda 'return to_string((int) roundf(id(node_wifi_rssi).state));'
+          qos: 1
+          retain: true
+      - mqtt.publish:
+          topic: womo/system/${name}/heap_free
+          payload: !lambda 'return to_string((uint32_t) id(node_heap_free).state);'
+          qos: 1
+          retain: true
+
+interval:
+  - interval: 60s
+    then:
+      - mqtt.publish:
+          topic: womo/system/${name}/ip
+          payload: !lambda 'return id(node_ip).state;'
+          qos: 1
+          retain: true
+      - mqtt.publish:
+          topic: womo/system/${name}/restart_reason
+          payload: !lambda 'return id(node_restart_reason).state;'
+          qos: 1
+          retain: true
+      - mqtt.publish:
+          topic: womo/system/${name}/uptime
+          payload: !lambda 'return to_string((uint32_t) id(node_uptime).state);'
+          qos: 1
+          retain: true
+      - mqtt.publish:
+          topic: womo/system/${name}/wifi_rssi
+          payload: !lambda 'return to_string((int) roundf(id(node_wifi_rssi).state));'
+          qos: 1
+          retain: true
+      - mqtt.publish:
+          topic: womo/system/${name}/heap_free
+          payload: !lambda 'return to_string((uint32_t) id(node_heap_free).state);'
+          qos: 1
+          retain: true
+
 text_sensor:
   - platform: wifi_info
     ip_address:
       name: "${friendly_name} IP"
       id: node_ip
-      mqtt_id: node_ip_mqtt
-      topic: womo/system/${name}/ip
-
-  - platform: template
-    name: "${friendly_name} Status"
-    id: node_status
-    update_interval: 60s
-    mqtt_id: node_status_mqtt
-    topic: womo/system/${name}/status
-    lambda: |-
-      return {"online"};
 
   - platform: template
     name: "${friendly_name} Restart Reason"
     id: node_restart_reason
     update_interval: 300s
-    mqtt_id: node_restart_reason_mqtt
-    topic: womo/system/${name}/restart_reason
     lambda: |-
       return {"unknown"};
 
@@ -29,15 +75,11 @@ sensor:
     name: "${friendly_name} Uptime"
     id: node_uptime
     update_interval: 60s
-    mqtt_id: node_uptime_mqtt
-    topic: womo/system/${name}/uptime
 
   - platform: wifi_signal
     name: "${friendly_name} WiFi RSSI"
     id: node_wifi_rssi
     update_interval: 60s
-    mqtt_id: node_wifi_rssi_mqtt
-    topic: womo/system/${name}/wifi_rssi
 
   - platform: template
     name: "${friendly_name} Heap Free"
@@ -45,7 +87,5 @@ sensor:
     unit_of_measurement: "B"
     accuracy_decimals: 0
     update_interval: 60s
-    mqtt_id: node_heap_free_mqtt
-    topic: womo/system/${name}/heap_free
     lambda: |-
       return (float) ESP.getFreeHeap();
