@@ -1,0 +1,19 @@
+substitutions:
+  name: womo-power-measurement
+  friendly_name: WoMo Power Measurement Minimal
+
+packages:
+  base: !include base/device_base.yaml
+  node_health: !include base/node_health.yaml
+
+sensor:
+  - platform: uptime
+    name: "${friendly_name} Test Uptime"
+    update_interval: 10s
+
+text_sensor:
+  - platform: template
+    name: "${friendly_name} Test Status"
+    update_interval: 10s
+    lambda: |-
+      return {"alive"};

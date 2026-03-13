@@ -75,10 +75,18 @@ bool AD7606DualPower::read_adc_(GPIOPin *cs_pin, int16_t out[8]) {
     return false;
   }
 
+  {
+    ESP_LOGI(TAG, "RXBUF raw bytes: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+             rxbuf[0], rxbuf[1], rxbuf[2], rxbuf[3],
+             rxbuf[4], rxbuf[5], rxbuf[6], rxbuf[7],
+             rxbuf[8], rxbuf[9], rxbuf[10], rxbuf[11],
+             rxbuf[12], rxbuf[13], rxbuf[14], rxbuf[15]);
+  }
+
     for (int i = 0; i < 8; i++) {
     uint16_t value = (static_cast<uint16_t>(rxbuf[2 * i]) << 8) |
                      (static_cast<uint16_t>(rxbuf[2 * i + 1]));
-    out[i] = static_cast<int16_t>(value);
+    out[i] = static_cast<int16_t>(value >> 1);
   }
 
   return true;
@@ -128,7 +136,7 @@ void AD7606DualPower::setup() {
 
   spi_device_interface_config_t devcfg{};
   devcfg.clock_speed_hz = 1000000;
-  devcfg.mode = 2;
+  devcfg.mode = 0;
   devcfg.spics_io_num = -1;
   devcfg.queue_size = 1;
 
@@ -169,7 +177,7 @@ void AD7606DualPower::update() {
       return;
     }
 
-    const bool valid_frame = (g_fd_start == 1);
+    const bool valid_frame = (g_fd_start == 1 && g_fd_end == 1);
 
     if (s < 2) {
       ESP_LOGI(TAG, "ADC2 sample[%d] fd_start=%d fd_end=%d valid=%d : %d %d %d %d %d %d %d %d",

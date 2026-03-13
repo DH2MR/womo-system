@@ -2,17 +2,16 @@ sensor:
   - platform: ad7606_dual_power
     id: ad7606_power
 
-    cs1_pin: GPIO10
-    cs2_pin: GPIO09
+    cs1_pin: GPIO6
+    cs2_pin: GPIO5
     convst_pin: GPIO8
-    reset_pin: GPIO7
-    busy1_pin: GPIO6
-    busy2_pin: GPIO5
-    range_pin: GPIO4
-    os2_pin: GPIO3
-    os1_pin: GPIO2
-    os0_pin: GPIO11
-
+    reset_pin: GPIO3
+    busy1_pin: GPIO17
+    busy2_pin: GPIO4
+    range_pin: GPIO1
+    os2_pin: GPIO11
+    os1_pin: GPIO18
+    os0_pin: GPIO19
 
     oversampling: 16x
     update_interval: 1s
