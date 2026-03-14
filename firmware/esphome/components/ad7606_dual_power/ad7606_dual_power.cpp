@@ -165,14 +165,14 @@ void AD7606DualPower::update() {
     }
 
     if (!read_adc_(cs2_pin_, adc2)) {
-      ESP_LOGE(TAG, "ADC2 read failed at sample %d", s);
+      ESP_LOGE(TAG, "ADC read failed at sample %d", s);
       return;
     }
 
     const bool valid_frame = (g_fd_start == 1);
 
     if (s < 2) {
-      ESP_LOGI(TAG, "ADC2 sample[%d] fd_start=%d fd_end=%d valid=%d : %d %d %d %d %d %d %d %d",
+      ESP_LOGI(TAG, "ADC sample[%d] fd_start=%d fd_end=%d valid=%d : %d %d %d %d %d %d %d %d",
                s, g_fd_start, g_fd_end, valid_frame ? 1 : 0,
                adc2[0], adc2[1], adc2[2], adc2[3],
                adc2[4], adc2[5], adc2[6], adc2[7]);
@@ -189,8 +189,8 @@ void AD7606DualPower::update() {
     valid_samples++;
   }
 
-  ESP_LOGI(TAG, "ADC2 summary: valid=%d dropped=%d", valid_samples, dropped_samples);
-  ESP_LOGI(TAG, "ADC2 words: w0=%d w1=%d w2=%d w3=%d w4=%d w5=%d w6=%d w7=%d",
+  ESP_LOGI(TAG, "ADC summary: valid=%d dropped=%d", valid_samples, dropped_samples);
+  ESP_LOGI(TAG, "ADC words: w0=%d w1=%d w2=%d w3=%d w4=%d w5=%d w6=%d w7=%d",
            adc2_last[0], adc2_last[1], adc2_last[2], adc2_last[3],
            adc2_last[4], adc2_last[5], adc2_last[6], adc2_last[7]);
 }
