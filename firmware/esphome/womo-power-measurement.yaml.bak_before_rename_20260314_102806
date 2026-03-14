@@ -1,0 +1,14 @@
+substitutions:
+  name: womo-power-bank-a
+  friendly_name: "WoMo 230V Messnode Bank A"
+
+external_components:
+  - source:
+      type: local
+      path: /config/components
+
+packages:
+  base: !include base/device_base.yaml
+  node_health: !include base/node_health.yaml
+  diag: !include common/diag_basic.yaml
+  ad7606_power: !include sensors/ad7606_dual_power.yaml

@@ -1,0 +1,203 @@
+#include "ad7606_dual_power.h"
+#include "esphome/core/log.h"
+#include "esphome/core/gpio.h"
+#include "esphome/components/wifi/wifi_component.h"
+#include <cstring>
+#include <cstdio>
+
+namespace esphome {
+namespace ad7606_dual_power {
+
+static const char *const TAG = "ad7606_hwspi";
+static const int SAMPLE_COUNT = 8;
+
+static int g_fd_start = -1;
+static int g_fd_end = -1;
+
+bool AD7606DualPower::start_conversion_and_wait_() {
+  if (convst_pin_ == nullptr || busy2_pin_ == nullptr)
+    return false;
+
+  // CA + CB are tied together externally and connected to convst_pin_
+  convst_pin_->digital_write(false);
+  delayMicroseconds(2);
+  convst_pin_->digital_write(true);
+  delayMicroseconds(2);
+  convst_pin_->digital_write(false);
+
+  const uint32_t t1 = micros();
+  while (micros() - t1 < 10000) {
+    if (!busy2_pin_->digital_read()) {
+      delayMicroseconds(2);
+      return true;
+    }
+  }
+
+  ESP_LOGE(TAG, "Timeout waiting BUSY low: b2=%d", busy2_pin_->digital_read());
+  return false;
+}
+
+bool AD7606DualPower::read_adc_(GPIOPin *cs_pin, int16_t out[8]) {
+  if (cs_pin == nullptr || spi_ == nullptr)
+    return false;
+
+  uint8_t txbuf[16] = {0};
+  uint8_t rxbuf[16] = {0};
+
+  spi_transaction_t t;
+  std::memset(&t, 0, sizeof(t));
+  t.length = 128;
+  t.rxlength = 128;
+  t.tx_buffer = txbuf;
+  t.rx_buffer = rxbuf;
+
+  cs_pin->digital_write(false);
+  delayMicroseconds(1);
+
+  // cs1_pin_ is reused as FD input
+  if (cs1_pin_ != nullptr)
+    g_fd_start = cs1_pin_->digital_read();
+  else
+    g_fd_start = -1;
+
+  esp_err_t err = spi_device_transmit(spi_, &t);
+
+  if (cs1_pin_ != nullptr)
+    g_fd_end = cs1_pin_->digital_read();
+  else
+    g_fd_end = -1;
+
+  cs_pin->digital_write(true);
+  delayMicroseconds(1);
+
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "spi_device_transmit(128b) failed: %d", (int) err);
+    return false;
+  }
+
+    for (int i = 0; i < 8; i++) {
+    uint16_t value = (static_cast<uint16_t>(rxbuf[2 * i]) << 8) |
+                     (static_cast<uint16_t>(rxbuf[2 * i + 1]));
+    out[i] = static_cast<int16_t>(value);
+  }
+
+  return true;
+}
+
+void AD7606DualPower::setup() {
+  // cs1_pin_ is currently reused as FD input on GPIO6
+  if (cs1_pin_ != nullptr) {
+    cs1_pin_->setup();
+    cs1_pin_->pin_mode(gpio::FLAG_INPUT);
+  }
+
+  if (cs2_pin_ != nullptr) cs2_pin_->setup();
+  if (convst_pin_ != nullptr) convst_pin_->setup();
+  if (reset_pin_ != nullptr) reset_pin_->setup();
+  if (busy2_pin_ != nullptr) busy2_pin_->setup();
+  if (range_pin_ != nullptr) range_pin_->setup();
+
+  if (cs2_pin_ != nullptr) cs2_pin_->digital_write(true);
+  if (convst_pin_ != nullptr) convst_pin_->digital_write(false);
+
+  // RANGE low/high depends on your board wiring; keep LOW like previous test stand
+  if (range_pin_ != nullptr) range_pin_->digital_write(false);
+
+  if (reset_pin_ != nullptr) {
+    reset_pin_->digital_write(false);
+    delayMicroseconds(2);
+    reset_pin_->digital_write(true);
+    delayMicroseconds(10);
+    reset_pin_->digital_write(false);
+    delay(2);
+  }
+
+  spi_bus_config_t buscfg{};
+  buscfg.mosi_io_num = -1;
+  buscfg.miso_io_num = GPIO_NUM_8;   // D7
+  buscfg.sclk_io_num = GPIO_NUM_11;   // RD
+  buscfg.quadwp_io_num = -1;
+  buscfg.quadhd_io_num = -1;
+  buscfg.max_transfer_sz = 16;
+
+  esp_err_t err = spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_DISABLED);
+  if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+    ESP_LOGE(TAG, "spi_bus_initialize failed: %d", (int) err);
+    return;
+  }
+
+  spi_device_interface_config_t devcfg{};
+  devcfg.clock_speed_hz = 1000000;
+  devcfg.mode = 2;
+  devcfg.spics_io_num = -1;
+  devcfg.queue_size = 1;
+
+  err = spi_bus_add_device(SPI2_HOST, &devcfg, &spi_);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "spi_bus_add_device failed: %d", (int) err);
+    spi_ = nullptr;
+    return;
+  }
+
+  ESP_LOGI(TAG, "Setup complete: CONVST=GPIO3(CA+CB), CS=GPIO5, BUSY=GPIO10, FD=GPIO9, RD=GPIO11, D7=GPIO8");
+}
+
+void AD7606DualPower::update() {
+  if (wifi::global_wifi_component == nullptr || !wifi::global_wifi_component->is_connected()) {
+    return;
+  }
+
+  int valid_samples = 0;
+  int dropped_samples = 0;
+  int16_t adc2[8]{};
+  int16_t adc2_last[8]{};
+
+  static bool logged = false;
+  if (!logged) {
+    ESP_LOGW(TAG, "MINIMAL TEST: pulse CONVST via CA+CB, wait BUSY, 128-bit read, log FD");
+    logged = true;
+  }
+
+  for (int s = 0; s < SAMPLE_COUNT; s++) {
+    if (!start_conversion_and_wait_()) {
+      ESP_LOGE(TAG, "Conversion failed at sample %d", s);
+      return;
+    }
+
+    if (!read_adc_(cs2_pin_, adc2)) {
+      ESP_LOGE(TAG, "ADC2 read failed at sample %d", s);
+      return;
+    }
+
+    const bool valid_frame = (g_fd_start == 1);
+
+    if (s < 2) {
+      ESP_LOGI(TAG, "ADC2 sample[%d] fd_start=%d fd_end=%d valid=%d : %d %d %d %d %d %d %d %d",
+               s, g_fd_start, g_fd_end, valid_frame ? 1 : 0,
+               adc2[0], adc2[1], adc2[2], adc2[3],
+               adc2[4], adc2[5], adc2[6], adc2[7]);
+    }
+
+    if (!valid_frame) {
+      dropped_samples++;
+      continue;
+    }
+
+    for (int i = 0; i < 8; i++) {
+      adc2_last[i] = adc2[i];
+    }
+    valid_samples++;
+  }
+
+  ESP_LOGI(TAG, "ADC2 summary: valid=%d dropped=%d", valid_samples, dropped_samples);
+  ESP_LOGI(TAG, "ADC2 words: w0=%d w1=%d w2=%d w3=%d w4=%d w5=%d w6=%d w7=%d",
+           adc2_last[0], adc2_last[1], adc2_last[2], adc2_last[3],
+           adc2_last[4], adc2_last[5], adc2_last[6], adc2_last[7]);
+}
+
+void AD7606DualPower::dump_config() {
+  ESP_LOGCONFIG(TAG, "AD7606 board-specific minimal test");
+}
+
+}  // namespace ad7606_dual_power
+}  // namespace esphome
