@@ -1,0 +1,40 @@
+WoMo Power Nodes – funktionierender Stand
+
+Bank A
+- Node: womo-power-bank-a
+- IP: 10.10.64.36
+- Status: läuft
+- AD7606 Readout stabil
+- SPI mode 2
+- valid=8, dropped=0
+
+Bank B
+- Node: womo-power-bank-b
+- IP: 10.10.64.38
+- Status: läuft
+- AD7606 Readout stabil
+- SPI mode 2
+- valid=8, dropped=0
+
+Gemeinsamer technischer Stand
+- Neue Pinbelegung aktiv
+- FD-Validierung über fd_start == 1
+- Kein Faktor-2-Bitshift mehr
+- Beide Nodes per MQTT erreichbar
+- DHCP-Reservierung im Router, keine manual_ip in YAML
+
+Kanalmapping
+Bank A:
+  AIN1..AIN6 -> ACS758 #1..#6
+  AIN7 -> Voltage
+  AIN8 -> frei
+
+Bank B:
+  AIN1..AIN6 -> ACS758 #7..#12
+  AIN7 -> frei
+  AIN8 -> frei
+
+Nächste Schritte
+- Aufbau finalisieren
+- Offset-Kalibrierung pro Kanal
+- DC-Kalibrierung mit elektronischer Last

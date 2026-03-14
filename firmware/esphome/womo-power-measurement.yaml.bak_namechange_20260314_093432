@@ -1,6 +1,6 @@
 substitutions:
-  name: womo-power-bank-a
-  friendly_name: "WoMo 230V Messnode Bank A"
+  name: womo-power-measurement
+  friendly_name: WoMo Power Measurement
 
 external_components:
   - source:

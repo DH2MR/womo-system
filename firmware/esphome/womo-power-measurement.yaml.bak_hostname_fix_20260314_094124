@@ -1,5 +1,5 @@
 substitutions:
-  name: womo-power-bank-a
+  name: womo_power_bank_a
   friendly_name: "WoMo 230V Messnode Bank A"
 
 external_components:
