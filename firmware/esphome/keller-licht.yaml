@@ -1,0 +1,18 @@
+substitutions:
+  name: keller-licht
+  friendly_name: Keller Licht
+  light_name: Keller
+
+  cw_pin: GPIO1
+  ww_pin: GPIO2
+
+  pwm_frequency: 244 Hz
+  curve_value: "1.10"
+
+  cold_kelvin: 6500 K
+  warm_kelvin: 2700 K
+
+packages:
+  device_base: !include base/device_base.yaml
+  node_health: !include base/node_health.yaml
+  light_node: !include base/light_node_cct.yaml
