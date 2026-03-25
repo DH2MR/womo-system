@@ -1,0 +1,14 @@
+default_config:
+
+homeassistant:
+  name: WoMo Home Assistant
+  unit_system: metric
+  time_zone: Europe/Berlin
+
+frontend:
+
+config:
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml

@@ -127,7 +127,7 @@ void AD7606DualPower::setup() {
   }
 
   spi_device_interface_config_t devcfg{};
-  devcfg.clock_speed_hz = 1000000;
+  devcfg.clock_speed_hz = 500000;
   devcfg.mode = 2;
   devcfg.spics_io_num = -1;
   devcfg.queue_size = 1;

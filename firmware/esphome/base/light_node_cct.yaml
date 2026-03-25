@@ -1,0 +1,76 @@
+substitutions:
+  cw_pin: GPIO1
+  ww_pin: GPIO2
+  pwm_frequency: 244 Hz
+  curve_value: "1.10"
+  light_name: Licht
+  cold_kelvin: 6500 K
+  warm_kelvin: 2700 K
+
+output:
+  - platform: ledc
+    pin: ${cw_pin}
+    id: pwm_cw
+    frequency: ${pwm_frequency}
+
+  - platform: ledc
+    pin: ${ww_pin}
+    id: pwm_ww
+    frequency: ${pwm_frequency}
+
+  - platform: template
+    id: mapped_cw
+    type: float
+    write_action:
+      - lambda: |-
+          const float off_eps = 0.00001f;
+          const float curve = ${curve_value};
+
+          float in = state;
+          float out = 0.0f;
+
+          if (in <= off_eps) {
+            out = 0.0f;
+          } else {
+            out = powf(in, curve);
+          }
+
+          id(pwm_cw).set_level(out);
+
+  - platform: template
+    id: mapped_ww
+    type: float
+    write_action:
+      - lambda: |-
+          const float off_eps = 0.00001f;
+          const float curve = ${curve_value};
+
+          float in = state;
+          float out = 0.0f;
+
+          if (in <= off_eps) {
+            out = 0.0f;
+          } else {
+            out = powf(in, curve);
+          }
+
+          id(pwm_ww).set_level(out);
+
+light:
+  - platform: cwww
+    name: "${light_name}"
+    id: main_light
+    cold_white: mapped_cw
+    warm_white: mapped_ww
+    cold_white_color_temperature: ${cold_kelvin}
+    warm_white_color_temperature: ${warm_kelvin}
+    constant_brightness: false
+    gamma_correct: 1.0
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_off:
+      - output.set_level:
+          id: pwm_cw
+          level: 0%
+      - output.set_level:
+          id: pwm_ww
+          level: 0%

@@ -37,3 +37,35 @@ firmware/esphome/components/**/*.working_readout
 firmware/esphome/components/**/*.before_*
 firmware/esphome/components/**/*.pre_*
 firmware/esphome/components/**/*.cppcd
+
+# PlatformIO (optional, aber sinnvoll)
+.pio/
+.platformio/
+
+# Build output allgemein
+build/
+dist/
+
+# Firmware binaries (optional)
+*.bin
+
+# backups / temp
+*.bak
+*.save
+*.tmp
+
+# local test scripts
+tools/
+
+# ssh / keys / local artifacts
+womo
+womo.pub
+
+# backups / temp
+*.bak
+*.save
+*.tmp
+
+# local ssh keys / local artifacts
+womo
+womo.pub

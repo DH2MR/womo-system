@@ -1,0 +1,11 @@
+.storage/
+backups/
+tts/
+deps/
+www/community/
+*.db
+*.db-*
+home-assistant.log*
+*.log
+.cloud/
+.auth
