@@ -1,6 +1,6 @@
 substitutions:
-  warm_white_pin: "GPIO3"
-  cold_white_pin: "GPIO2"
+  warm_white_pin: "GPIO2"
+  cold_white_pin: "GPIO1"
   light_name: "CCT Light"
   light_object_id: "cct_light"
 

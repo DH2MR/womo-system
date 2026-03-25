@@ -3,8 +3,8 @@ substitutions:
   friendly_name: "WoMo Licht Keller"
 
   # Standard CCT Pins (global definiert)
-  warm_white_pin: "GPIO3"
-  cold_white_pin: "GPIO2"
+  warm_white_pin: "GPIO2"
+  cold_white_pin: "GPIO1"
 
   light_name: "Keller Licht"
   light_object_id: "keller_licht"
